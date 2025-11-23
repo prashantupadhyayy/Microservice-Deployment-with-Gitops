@@ -1,23 +1,23 @@
 name: CI - Build & Push Images
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:   # manual trigger
+
+permissions:
+  id-token: write      # ✅ required for OIDC
+  contents: read       # ✅ required for checkout
 
 jobs:
   build-push:
     runs-on: ubuntu-latest
 
     env:
-      ACR_NAME: gssacr.azureacr.io
+      ACR_NAME: deployment.azureacr.io
 
     steps:
-    # ✅ checkout repo
     - name: Checkout
       uses: actions/checkout@v3
 
-    # ✅ login to Azure (OIDC)
     - name: Azure Login
       uses: azure/login@v1
       with:
@@ -25,24 +25,21 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    # ✅ login to ACR
     - name: ACR Login
       uses: azure/docker-login@v1
       with:
         login-server: ${{ env.ACR_NAME }}
 
-    # ✅ build & push all microservices
     - name: Build & Push Images
       run: |
         services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
         for svc in "${services[@]}"; do
-          IMAGE="${ACR_NAME}/${svc,,}:${{ github.run_number }}"
+          IMAGE="$ACR_NAME/${svc,,}:${{ github.run_number }}"
           echo "🚀 Building & pushing $IMAGE"
           docker build -t $IMAGE $svc
           docker push $IMAGE
         done
 
-    # ✅ optional info
     - name: Done
       run: echo "✅ Images pushed with tag ${{ github.run_number }}"
