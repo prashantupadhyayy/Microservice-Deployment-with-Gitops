@@ -1,4 +1,4 @@
-name: CI - Build & Push Images Only
+name: CI - Build & Push Images
 
 on:
   push:
@@ -13,11 +13,11 @@ jobs:
       ACR_NAME: gssacr.azureacr.io
 
     steps:
-    # ✅ checkout source
+    # ✅ checkout repo
     - name: Checkout
       uses: actions/checkout@v3
 
-    # ✅ login to Azure using OIDC (no secret)
+    # ✅ login to Azure (OIDC)
     - name: Azure Login
       uses: azure/login@v1
       with:
@@ -38,11 +38,11 @@ jobs:
 
         for svc in "${services[@]}"; do
           IMAGE="${ACR_NAME}/${svc,,}:${{ github.run_number }}"
-          echo "✅ Building & pushing $IMAGE"
+          echo "🚀 Building & pushing $IMAGE"
           docker build -t $IMAGE $svc
           docker push $IMAGE
         done
 
-    # ✅ optional metadata output
-    - name: Print Image Tags
-      run: echo "Images pushed with tag: ${{ github.run_number }}"
+    # ✅ optional info
+    - name: Done
+      run: echo "✅ Images pushed with tag ${{ github.run_number }}"
