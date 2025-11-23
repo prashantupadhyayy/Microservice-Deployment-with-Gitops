@@ -10,6 +10,8 @@ on:
       - "MicroTodoUI/**"
       - ".github/workflows/ci-build-acr.yml"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
   id-token: write
