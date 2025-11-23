@@ -1,0 +1,9 @@
+image:
+  repository: deployment.azurecr.io/addtasktodomicroservice
+  tag: "latest"
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80

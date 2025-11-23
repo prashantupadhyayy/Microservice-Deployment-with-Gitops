@@ -1,0 +1,5 @@
+argocd*
+*.exe
+*.bin
+*.tar.gz
+*.zip

@@ -1,0 +1,19 @@
+image:
+  repository: acrdevtodoapp01sg.azurecr.io/todo-add-tasks-api
+  tag: "latest"
+
+replicaCount: 2
+
+service:
+  port: 80
+  targetPort: 8000
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  className: azure-application-gateway
+  host: add-task-api.shruti.online
+  path: "/"
+
+env:
+  CONNECTION_STRING: "Driver={ODBC Driver 18 for SQL Server};Server=tcp:sql-dev-todoapp-786.database.windows.net,1433;Database=sqldb-dev-todoapp;Uid=devopsadmin;Pwd=P@ssw01rd@123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-add-tasks-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: todo-add-tasks-api
+  template:
+    metadata:
+      labels:
+        app: todo-add-tasks-api
+    spec:
+      containers:
+      - name: todo-add-tasks-api
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.service.targetPort }}
+        env:
+        - name: CONNECTION_STRING
+          value: "{{ .Values.env.CONNECTION_STRING }}"
