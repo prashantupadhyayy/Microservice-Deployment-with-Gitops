@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ACR_NAME: deployment.azureacr.io
+      ACR_NAME: gssacr.azureacr.io
 
     steps:
     - name: Checkout
