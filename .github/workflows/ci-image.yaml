@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ACR_NAME: deployment
+      ACR_NAME: gssacr
       ACR_LOGIN_SERVER: gssacr.azurecr.io
 
     steps:
