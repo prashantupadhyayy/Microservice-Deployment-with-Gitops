@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read        # id-token ki zaroorat nahi
+  contents: read    # id-token ki zaroorat nahi
 
 jobs:
   build-push:
     runs-on: ubuntu-latest
 
     env:
-      # ACR_NAME secret me sirf registry name hona chahiye, e.g. "gssacr"
+      # ACR_NAME secret me sirf registry name rakho, e.g. "gssacr"
       ACR_NAME: ${{ secrets.ACR_NAME }}
 
     steps:
@@ -24,18 +24,17 @@ jobs:
 
       # ✅ Azure login with client secret (NO OIDC)
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       # ✅ login to ACR
       - name: ACR Login
-        uses: azure/docker-login@v2
+        uses: azure/docker-login@v1
         with:
-          # yaha full login server chahiye (e.g. gssacr.azurecr.io)
           login-server: ${{ secrets.ACR_NAME }}.azurecr.io
 
       # ✅ build & push all microservices
