@@ -1,12 +1,10 @@
 name: CI - Build & Push All Microservice Images
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
@@ -14,51 +12,36 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # ACR_NAME secret me sirf registry name, e.g. "gssacr"
-      ACR_NAME: ${{ secrets.ACR_NAME }}
+      ACR_NAME: deployment
+      ACR_LOGIN_SERVER: gssacr.azurecr.io
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+    - name: Checkout Repo
+      uses: actions/checkout@v3
 
-      # ✅ Azure CLI login using service principal (client secret)
-      - name: Azure CLI login
-        run: |
-          echo "Logging in to Azure..."
-          az login --service-principal \
-            -u "${AZURE_CLIENT_ID}" \
-            -p "${AZURE_CLIENT_SECRET}" \
-            --tenant "${AZURE_TENANT_ID}"
+    - name: Azure Login (OIDC)
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-          az account set --subscription "${AZURE_SUBSCRIPTION_ID}"
-          echo "Logged in:"
-          az account show -o table
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: Login to ACR
+      run: az acr login --name $ACR_NAME
 
-      - name: Login to ACR
-        run: |
-          echo "Logging in to ACR: $ACR_NAME"
-          az acr login --name "$ACR_NAME"
+    - name: Build & Push All Microservices
+      run: |
+        services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
-      - name: Build & Push All Microservices
-        env:
-          ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
-        run: |
-          services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
+        for svc in "${services[@]}"; do
+          IMAGE="$ACR_LOGIN_SERVER/${svc,,}:${{ github.run_number }}"
+          echo "🚀 Building $IMAGE"
 
-          for svc in "${services[@]}"; do
-            image_name="${svc,,}"
-            IMAGE="$ACR_LOGIN_SERVER/$image_name:${GITHUB_RUN_NUMBER}"
+          docker build -t $IMAGE $svc
+          docker push $IMAGE
 
-            echo "🚀 Building $IMAGE"
-            docker build -t "$IMAGE" "$svc"
-            docker push "$IMAGE"
-            echo "✅ Pushed $IMAGE"
-          done
+          echo "✅ Pushed $IMAGE"
+        done
 
-      - name: Done
-        run: echo "✅ All images pushed with tag ${GITHUB_RUN_NUMBER}"
+    - name: Done
+      run: echo "✅ All images pushed with tag ${{ github.run_number }}"
