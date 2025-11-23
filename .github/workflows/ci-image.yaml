@@ -1,67 +1,48 @@
-name: Build & Push microservices to ACR
+name: CI - Build & Push Images Only
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - "AddTaskTodoMicroservice/**"
-      - "DeleteTaskTodoMicroservice/**"
-      - "GetTasksTodoMicroservice/**"
-      - "MicroTodoUI/**"
-      - ".github/workflows/ci-build-acr.yml"
-
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  id-token: write
-
-env:
-  ACR_NAME: ${{ secrets.ACR_NAME }}
+    branches:
+      - main
 
 jobs:
-  build-and-push:
+  build-push:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        include:
-          - service_path: AddTaskTodoMicroservice
-            image_name: addtasktodo-microservice
-          - service_path: DeleteTaskTodoMicroservice
-            image_name: deletetasktodo-microservice
-          - service_path: GetTasksTodoMicroservice
-            image_name: gettaskstodo-microservice
-          - service_path: MicroTodoUI
-            image_name: microtodo-ui
+    env:
+      ACR_NAME: gssacr.azureacr.io
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    # ✅ checkout source
+    - name: Checkout
+      uses: actions/checkout@v3
 
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    # ✅ login to Azure using OIDC (no secret)
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to ACR
-        run: |
-          az acr login --name $ACR_NAME
+    # ✅ login to ACR
+    - name: ACR Login
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_NAME }}
 
-      - name: Set image tag
-        run: |
-          IMAGE_TAG=${{ github.sha }}
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+    # ✅ build & push all microservices
+    - name: Build & Push Images
+      run: |
+        services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
-      - name: Build Docker image - ${{ matrix.service_path }}
-        working-directory: ./${{ matrix.service_path }}
-        run: |
-          echo "Building image for ${{ matrix.service_path }}"
-          docker build -t $ACR_NAME.azurecr.io/${{ matrix.image_name }}:$IMAGE_TAG .
+        for svc in "${services[@]}"; do
+          IMAGE="${ACR_NAME}/${svc,,}:${{ github.run_number }}"
+          echo "✅ Building & pushing $IMAGE"
+          docker build -t $IMAGE $svc
+          docker push $IMAGE
+        done
 
-      - name: Push Docker image - ${{ matrix.service_path }}
-        run: |
-          echo "Pushing image for ${{ matrix.service_path }}"
-          docker push $ACR_NAME.azurecr.io/${{ matrix.image_name }}:$IMAGE_TAG
+    # ✅ optional metadata output
+    - name: Print Image Tags
+      run: echo "Images pushed with tag: ${{ github.run_number }}"
