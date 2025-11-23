@@ -1,13 +1,10 @@
-name: CI - Build & Push Images
+name: CI - Build & Push All Microservice Images
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
-  id-token: write       # 🔥 OIDC ke liye required
+  id-token: write
   contents: read
 
 jobs:
@@ -15,40 +12,36 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # sirf login-server ka naam, https nahi
-      ACR_NAME: gssacr.azurecr.io
+      ACR_NAME: deployment
+      ACR_LOGIN_SERVER: gssacr.azurecr.io
 
     steps:
-      # ✅ checkout repo
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout Repo
+      uses: actions/checkout@v3
 
-      # ✅ login to Azure (OIDC)
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: Azure Login (OIDC)
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # ✅ login to ACR
-      - name: ACR Login
-        uses: azure/docker-login@v2
-        with:
-          login-server: ${{ env.ACR_NAME }}
+    - name: Login to ACR
+      run: az acr login --name $ACR_NAME
 
-      # ✅ build & push all microservices
-      - name: Build & Push Images
-        run: |
-          services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
+    - name: Build & Push All Microservices
+      run: |
+        services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
-          for svc in "${services[@]}"; do
-            IMAGE="${ACR_NAME}/${svc,,}:${{ github.run_number }}"
-            echo "🚀 Building & pushing $IMAGE"
-            docker build -t "$IMAGE" "$svc"
-            docker push "$IMAGE"
-          done
+        for svc in "${services[@]}"; do
+          IMAGE="$ACR_LOGIN_SERVER/${svc,,}:${{ github.run_number }}"
+          echo "🚀 Building $IMAGE"
 
-      # ✅ optional info
-      - name: Done
-        run: echo "✅ Images pushed with tag ${{ github.run_number }}"
+          docker build -t $IMAGE $svc
+          docker push $IMAGE
+
+          echo "✅ Pushed $IMAGE"
+        done
+
+    - name: Done
+      run: echo "✅ All images pushed with tag ${{ github.run_number }}"
