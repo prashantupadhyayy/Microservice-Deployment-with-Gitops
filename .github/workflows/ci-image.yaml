@@ -1,4 +1,4 @@
-name: CI - Build & Push Images
+name: CI - Build & Push All Microservice Images
 
 on:
   push:
@@ -14,52 +14,51 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # ACR_NAME secret me sirf registry name, e.g. "gssacr"
       ACR_NAME: ${{ secrets.ACR_NAME }}
 
     steps:
-      # ✅ Checkout repo
-      - name: Checkout
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
-      # ✅ Azure CLI login with service principal (NO azure/login action)
+      # ✅ Azure CLI login using service principal (client secret)
       - name: Azure CLI login
         run: |
           echo "Logging in to Azure..."
           az login --service-principal \
-            -u "$AZURE_CLIENT_ID" \
-            -p "$AZURE_CLIENT_SECRET" \
-            --tenant "$AZURE_TENANT_ID"
+            -u "${AZURE_CLIENT_ID}" \
+            -p "${AZURE_CLIENT_SECRET}" \
+            --tenant "${AZURE_TENANT_ID}"
 
-          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-
-          echo "Logged in as:"
-          az account show --query user --output tsv
+          az account set --subscription "${AZURE_SUBSCRIPTION_ID}"
+          echo "Logged in:"
+          az account show -o table
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # ✅ Login to ACR
-      - name: ACR Login
+      - name: Login to ACR
         run: |
           echo "Logging in to ACR: $ACR_NAME"
           az acr login --name "$ACR_NAME"
 
-      # ✅ Build & push all microservices
-      - name: Build & Push Images
+      - name: Build & Push All Microservices
         env:
           ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
         run: |
           services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
           for svc in "${services[@]}"; do
-            image_name="${svc,,}"   # lowercase folder name as image name
+            image_name="${svc,,}"
             IMAGE="$ACR_LOGIN_SERVER/$image_name:${GITHUB_RUN_NUMBER}"
-            echo "🚀 Building & pushing $IMAGE"
+
+            echo "🚀 Building $IMAGE"
             docker build -t "$IMAGE" "$svc"
             docker push "$IMAGE"
+            echo "✅ Pushed $IMAGE"
           done
 
       - name: Done
-        run: echo "✅ Images pushed with tag ${GITHUB_RUN_NUMBER}"
+        run: echo "✅ All images pushed with tag ${GITHUB_RUN_NUMBER}"
