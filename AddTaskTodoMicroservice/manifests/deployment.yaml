@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: todo-add-tasks-ap
-        image: gssacr.azurecr.io/addtasktodomicroservice:21
+        image: gssacr.azurecr.io/addtasktodomicroservice:22
         ports:
         - containerPort: 8000
         env: 
