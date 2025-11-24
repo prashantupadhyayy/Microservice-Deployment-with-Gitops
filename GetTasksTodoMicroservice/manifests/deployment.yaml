@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: todo-get-task-api
-        image: gssacr.azurecr.io/gettaskstodomicroservice:21
+        image: gssacr.azurecr.io/gettaskstodomicroservice:22
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
