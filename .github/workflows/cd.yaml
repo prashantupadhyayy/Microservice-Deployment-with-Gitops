@@ -1,10 +1,15 @@
 name: CD - Deploy Todo App to AKS (Manifests)
 
 on:
-  workflow_dispatch:   # manually run from GitHub UI
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: "Docker image tag to deploy (e.g. 12 or latest)"
+        required: true
+        default: "latest"
 
 permissions:
-  id-token: write      # for OIDC login
+  id-token: write      # OIDC ke liye
   contents: read
 
 jobs:
@@ -16,11 +21,13 @@ jobs:
       ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
       AKS_NAME: ${{ secrets.AKS_NAME }}
       AKS_RG: ${{ secrets.AKS_RG }}
+      IMAGE_TAG: ${{ github.event.inputs.imageTag }}
 
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
 
+    # 🔐 OIDC login – NO client secret
     - name: Azure Login (OIDC)
       uses: azure/login@v1
       with:
@@ -35,29 +42,29 @@ jobs:
           --name "$AKS_NAME" \
           --overwrite-existing
 
-    # OPTIONAL: pehli baar jab cluster me resources create karne ho
+    # 🔁 Pehli baar ya jab manifests change karo
     - name: Apply Kubernetes manifests
       run: |
-        # yahan path apne repo ke hisaab se change kar sakta hai
+        # yahan apna actual path laga dena
         kubectl apply -f k8s/
 
-    - name: Update images to latest build tag
+    - name: Update images to given tag
       run: |
-        TAG=${{ github.run_number }}
+        TAG="$IMAGE_TAG"
         ACR="$ACR_LOGIN_SERVER"
 
+        # yahi 4 microservices
         services=("AddTaskTodoMicroservice" "DeleteTaskTodoMicroservice" "GetTasksTodoMicroservice" "MicroTodoUI")
 
         for svc in "${services[@]}"; do
-          dep=${svc,,}   # lower case deployment name
+          dep=${svc,,}   # lower-case deployment name
           image="$ACR/${svc,,}:$TAG"
 
           echo "🚀 Updating deployment '$dep' to image '$image'"
 
-          # yahan maine assume kiya container name == deployment name
+          # yahan assume kiya container name = deployment name
           kubectl set image deployment/$dep $dep=$image -n default
 
-          # rollout complete hone ka wait
           kubectl rollout status deployment/$dep -n default
         done
 
