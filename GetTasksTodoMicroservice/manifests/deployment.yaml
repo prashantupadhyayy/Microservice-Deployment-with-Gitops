@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: todo-get-task-api
+  labels:
+    app: todo-get-task-api
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: todo-get-task-api
@@ -14,9 +16,11 @@ spec:
     spec:
       containers:
       - name: todo-get-task-api
-        image: gssacr.azurecr.io/todo-get-tasks-api:v1
+        image: gssacr.azurecr.io/gettaskstodomicroservice:19
+        imagePullPolicy: Always
         ports:
-        - containerPort: 8000
+        - containerPort: 8080
+
         env: 
         - name: CONNECTION_STRING
           value:"Driver={ODBC Driver 18 for SQL Server};Server=tcp:gssserver.database.windows.net,1433;Database=gssdb;Uid=CloudSAa341d8be;Pwd=trivvy2025@;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
