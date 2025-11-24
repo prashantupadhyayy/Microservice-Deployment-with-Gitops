@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: todo-delete-tasks-api
-        image: gssacr.azurecr.io/todo-delete-tasks-api:19
+        image: gssacr.azurecr.io/deletetasktodomicroservice:21
         ports:
         - containerPort: 8000
         env: 
