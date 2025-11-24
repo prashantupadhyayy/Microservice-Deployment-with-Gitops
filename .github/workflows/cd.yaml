@@ -42,10 +42,7 @@ jobs:
           --admin \
           --overwrite-existing
 
-    - name: Apply Kubernetes manifests
-      run: |
-        echo "📦 Applying Kubernetes manifests..."
-        kubectl apply -f k8s/
+    # ❌ yaha apply step hata diya
 
     - name: Update deployed images
       run: |
