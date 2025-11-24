@@ -16,24 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ACR_NAME: ${{ secrets.ACR_NAME }}
       ACR_LOGIN_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
       AKS_NAME: ${{ secrets.AKS_NAME }}
       AKS_RG: ${{ secrets.AKS_RG }}
       IMAGE_TAG: ${{ github.event.inputs.imageTag }}
-
-      # 👇👇 Yahan apne actual deployment + container names set karo
-      ADDTASK_DEPLOYMENT: addtasktodomicroservice
-      ADDTASK_CONTAINER: addtasktodomicroservice
-
-      DELETETASK_DEPLOYMENT: deletetasktodomicroservice
-      DELETETASK_CONTAINER: deletetasktodomicroservice
-
-      GETTASKS_DEPLOYMENT: gettaskstodomicroservice
-      GETTASKS_CONTAINER: gettaskstodomicroservice
-
-      UI_DEPLOYMENT: microtodoui
-      UI_CONTAINER: microtodoui
 
     steps:
     - name: Checkout repo
@@ -55,72 +41,33 @@ jobs:
           --admin \
           --overwrite-existing
 
-    # NOTE: apply step hata diya hai kyunki k8s/ folder nahi hai.
-    # Deployments already cluster me bane hone chahiye.
+    - name: Apply manifests
+      run: |
+        echo "📦 Applying manifests from all microservices..."
+        kubectl apply -f AddTaskTodoMicroservice/manifests/
+        kubectl apply -f DeleteTaskTodoMicroservice/manifests/
+        kubectl apply -f GetTasksTodoMicroservice/manifests/
+        kubectl apply -f MicroTodoUI/manifests/
+        kubectl get deploy -n default
 
     - name: Update deployed images
       run: |
-        set -e
         TAG="$IMAGE_TAG"
         ACR="$ACR_LOGIN_SERVER"
 
-        echo "Using image tag: $TAG"
+        echo "🚀 Updating images with tag: $TAG"
 
-        # AddTaskTodoMicroservice
-        DEPLOY="$ADDTASK_DEPLOYMENT"
-        CONT="$ADDTASK_CONTAINER"
-        IMAGE="$ACR/addtasktodomicroservice:$TAG"
-        echo "🚀 Updating $DEPLOY -> $IMAGE"
-        if kubectl get deploy "$DEPLOY" -n default >/dev/null 2>&1; then
-          kubectl set image deployment/$DEPLOY $CONT=$IMAGE -n default
-          kubectl rollout status deployment/$DEPLOY -n default
-        else
-          echo "⚠️ Deployment $DEPLOY not found. Available deployments:"
-          kubectl get deploy -n default
-          exit 1
-        fi
+        kubectl set image deployment/addtasktodomicroservice addtasktodomicroservice=$ACR/addtasktodomicroservice:$TAG -n default
+        kubectl rollout status deployment/addtasktodomicroservice -n default
 
-        # DeleteTaskTodoMicroservice
-        DEPLOY="$DELETETASK_DEPLOYMENT"
-        CONT="$DELETETASK_CONTAINER"
-        IMAGE="$ACR/deletetasktodomicroservice:$TAG"
-        echo "🚀 Updating $DEPLOY -> $IMAGE"
-        if kubectl get deploy "$DEPLOY" -n default >/dev/null 2>&1; then
-          kubectl set image deployment/$DEPLOY $CONT=$IMAGE -n default
-          kubectl rollout status deployment/$DEPLOY -n default
-        else
-          echo "⚠️ Deployment $DEPLOY not found. Available deployments:"
-          kubectl get deploy -n default
-          exit 1
-        fi
+        kubectl set image deployment/deletetasktodomicroservice deletetasktodomicroservice=$ACR/deletetasktodomicroservice:$TAG -n default
+        kubectl rollout status deployment/deletetasktodomicroservice -n default
 
-        # GetTasksTodoMicroservice
-        DEPLOY="$GETTASKS_DEPLOYMENT"
-        CONT="$GETTASKS_CONTAINER"
-        IMAGE="$ACR/gettaskstodomicroservice:$TAG"
-        echo "🚀 Updating $DEPLOY -> $IMAGE"
-        if kubectl get deploy "$DEPLOY" -n default >/dev/null 2>&1; then
-          kubectl set image deployment/$DEPLOY $CONT=$IMAGE -n default
-          kubectl rollout status deployment/$DEPLOY -n default
-        else
-          echo "⚠️ Deployment $DEPLOY not found. Available deployments:"
-          kubectl get deploy -n default
-          exit 1
-        fi
+        kubectl set image deployment/gettaskstodomicroservice gettaskstodomicroservice=$ACR/gettaskstodomicroservice:$TAG -n default
+        kubectl rollout status deployment/gettaskstodomicroservice -n default
 
-        # MicroTodoUI
-        DEPLOY="$UI_DEPLOYMENT"
-        CONT="$UI_CONTAINER"
-        IMAGE="$ACR/microtodoui:$TAG"
-        echo "🚀 Updating $DEPLOY -> $IMAGE"
-        if kubectl get deploy "$DEPLOY" -n default >/dev/null 2>&1; then
-          kubectl set image deployment/$DEPLOY $CONT=$IMAGE -n default
-          kubectl rollout status deployment/$DEPLOY -n default
-        else
-          echo "⚠️ Deployment $DEPLOY not found. Available deployments:"
-          kubectl get deploy -n default
-          exit 1
-        fi
+        kubectl set image deployment/microtodoui microtodoui=$ACR/microtodoui:$TAG -n default
+        kubectl rollout status deployment/microtodoui -n default
 
     - name: Show pods
       run: |
