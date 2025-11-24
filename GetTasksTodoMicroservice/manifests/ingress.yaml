@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: azure-application-gateway
   rules:
-  - host: get-tasks-api.shruti.online
+  - host: get-tasks-api.prashantupadhyay.blog
     http:
       paths:
       - pathType: Prefix
