@@ -48,26 +48,29 @@ jobs:
         kubectl apply -f DeleteTaskTodoMicroservice/manifests/
         kubectl apply -f GetTasksTodoMicroservice/manifests/
         kubectl apply -f MicroTodoUI/manifests/
+        echo "📡 Current deployments:"
         kubectl get deploy -n default
 
-    - name: Update deployed images
+    - name: Update backend images with new tag
       run: |
         TAG="$IMAGE_TAG"
         ACR="$ACR_LOGIN_SERVER"
 
-        echo "🚀 Updating images with tag: $TAG"
+        declare -A images
+        images["todo-add-tasks-api"]="$ACR/addtasktodomicroservice:$TAG"
+        images["todo-delete-tasks-api"]="$ACR/deletetasktodomicroservice:$TAG"
+        images["todo-get-task-api"]="$ACR/gettaskstodomicroservice:$TAG"
 
-        kubectl set image deployment/addtasktodomicroservice addtasktodomicroservice=$ACR/addtasktodomicroservice:$TAG -n default
-        kubectl rollout status deployment/addtasktodomicroservice -n default
+        for dep in "${!images[@]}"; do
+          image="${images[$dep]}"
+          echo "🚀 Updating deployment $dep -> $image"
 
-        kubectl set image deployment/deletetasktodomicroservice deletetasktodomicroservice=$ACR/deletetasktodomicroservice:$TAG -n default
-        kubectl rollout status deployment/deletetasktodomicroservice -n default
+          kubectl patch deployment "$dep" -n default \
+            --type='json' \
+            -p="[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/image\",\"value\":\"$image\"}]"
 
-        kubectl set image deployment/gettaskstodomicroservice gettaskstodomicroservice=$ACR/gettaskstodomicroservice:$TAG -n default
-        kubectl rollout status deployment/gettaskstodomicroservice -n default
-
-        kubectl set image deployment/microtodoui microtodoui=$ACR/microtodoui:$TAG -n default
-        kubectl rollout status deployment/microtodoui -n default
+          kubectl rollout status deployment "$dep" -n default
+        done
 
     - name: Show pods
       run: |
