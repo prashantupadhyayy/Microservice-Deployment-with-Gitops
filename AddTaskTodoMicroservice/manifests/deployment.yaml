@@ -17,7 +17,7 @@ spec:
         image: gssacr.azurecr.io/addtasktodomicroservice:22
         ports:
         - containerPort: 8000
-       # ...
-        env: 
-        - name: CONNECTION_STRING
-          value: "Driver={ODBC Driver 18 for SQL Server};Server=tcp:gssserver.database.windows.net,1433;Database=gssdb;Uid=CloudSAa341d8be;Pwd=trivvy2025@;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+        env:
+        - name: CONNECTION_STRING
+          # Ensure there is a space after 'value:' and use double quotes
+          value: "Driver={ODBC Driver 18 for SQL Server};Server=tcp:gssserver.database.windows.net,1433;Database=gssdb;Uid=CloudSAa341d8be;Pwd=trivvy2025@;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
